@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { ExecException } from 'child_process';
 import { CreateMarketHistoryDto } from './dto/create-market-history.dto';
 import { UpdateMarketHistoryDto } from './dto/update-market-history.dto';
@@ -9,39 +9,36 @@ export class MarketHistoryService {
   //   return 'This action adds a new marketHistory';
   // }
 
-  findAll() {
-    // return `This action returns all marketHistory`;
-  }
+  // findAll() {
+  //   return `This action returns all marketHistory`;
+  // }
 
   async findOne(i_exchange: string, i_ticker: string, i_timeFrame: string, i_since?: Number, i_limit?: Number) {
-    try {
-      const ccxt = require('ccxt');
+    const ccxt = require('ccxt');
 
-      if (!ccxt.exchanges.includes(i_exchange)) {
-        throw { name: "Try again", message: "Exchange does not exists" };
-      }
-
-      const exchange = ccxt.pro.exchanges.includes(i_exchange) ? new ccxt.pro[i_exchange]() : new ccxt[i_exchange]();
-      const ohlcv = await exchange.fetchOHLCV(i_ticker, i_timeFrame, i_since, i_limit);
-
-      for (let i = 0; i < ohlcv.length; i++) {
-        ohlcv[i] = [new Date(ohlcv[i][0]), ...ohlcv[i]];
-      }
-
-      return ohlcv;
-    }
-    catch (error) {
-      return { title: error.name, message: error.message };
+    if (!ccxt.exchanges.includes(i_exchange)) {
+      return { status: HttpStatus.NOT_FOUND, name: "Not Found", message: "Exchange does not exists" };
     }
 
-    // const exchange = new ccxt.binance();
-    // const limit = 5;
-    // const orders = await exchange.fetchOrderBook('XBTUSD', limit, {});
-    // const orders = await exchange.fetchTickers();
-    // const symbols = await exchange.fetchMarkets();
-    // const orders = await exchange.fetchTickers();
-    // const symbols = Object.keys(exchange.markets);
-    // return `This action returns a #${id} marketHistory`;
+    const exchange = ccxt.pro.exchanges.includes(i_exchange) ? new ccxt.pro[i_exchange]() : new ccxt[i_exchange]();
+    await exchange.loadMarkets();
+    const symbols = exchange.symbols;
+
+    if (!symbols.includes(i_ticker)) {
+      return { status: HttpStatus.NOT_FOUND, name: "Not Found", message: `Ticker does not exists.\nTry one of: ${symbols}` };
+    }
+
+    const ohlcv = await exchange.fetchOHLCV(i_ticker, i_timeFrame, i_since, i_limit);
+
+    if (!ohlcv.length) {
+      return { status: HttpStatus.NOT_FOUND, name: "Not Found", message: "No data found in this period" };
+    }
+
+    for (let i = 0; i < ohlcv.length; i++) {
+      ohlcv[i] = [new Date(ohlcv[i][0]), ...ohlcv[i]];
+    }
+
+    return ohlcv;
   }
 
   // update(id: number, updateMarketHistoryDto: UpdateMarketHistoryDto) {

@@ -1,14 +1,17 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, HttpException, HttpStatus } from '@nestjs/common';
 import { MarketHistoryService } from './market-history.service';
 import { MarketHistory } from './dto/market-history.dto';
 // import { CreateMarketHistoryDto } from './dto/create-market-history.dto';
 // import { UpdateMarketHistoryDto } from './dto/update-market-history.dto';
-import { ApiOkResponse, ApiParam, ApiProperty, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiOkResponse, ApiParam, ApiProperty, ApiQuery, ApiResponse, ApiTags, getSchemaPath } from '@nestjs/swagger';
+
 
 @ApiTags('marketHistory')
 @Controller('market-history')
 export class MarketHistoryController {
-  constructor(private readonly marketHistoryService: MarketHistoryService) { }
+  constructor(private readonly marketHistoryService: MarketHistoryService) { 
+  }
+  
 
   // @Post()
   // create(@Body() createMarketHistoryDto: CreateMarketHistoryDto) {
@@ -21,9 +24,9 @@ export class MarketHistoryController {
   // }
 
   @ApiParam({
-    name: 'i_exchange',
-    example: 'BITMEX',
-    description: `Required to construct the exchange class`,
+    name: "i_exchange",
+    enum: require('ccxt').exchanges,
+    description: `Required to select the ticker on exchange`,
   })
   @ApiParam({
     name: 'i_ticker',
@@ -44,28 +47,39 @@ export class MarketHistoryController {
   })
   @ApiQuery({
     name: "i_limit",
-    example: 100,
+    example: 1,
     description: "Used to query the market history at the defined limit. max limit = 1000",
     required: false,
     type: Number
   })
   @Get(':i_exchange/:i_ticker/:i_timeFrame')
-  @ApiOkResponse({ description: 'Market History', type: Array, isArray: true})
-  @ApiResponse({ status: 404, description: 'Not Found.'})
-  findOne(
+  @ApiOkResponse({ description: 'Market History', type: Array, isArray: true })
+  @ApiResponse({ status: 404, description: 'Not Found.' })
+  async findOne(
     @Param('i_exchange') i_exchange: string,
     @Param('i_ticker') i_ticker: string,
     @Param('i_timeFrame') i_timeFrame: string,
     @Query('i_since') i_since?: Number,
     @Query('i_limit') i_limit?: Number
   ) {
-    return this.marketHistoryService.findOne(
-      i_exchange.toLowerCase(),
-      i_ticker.toUpperCase(),
-      i_timeFrame.toLowerCase(),
-      i_since ? Number(i_since) : undefined,
-      i_limit ? Number(i_limit) : undefined
-    );
+    try {
+      const response = await this.marketHistoryService.findOne(
+        i_exchange.toLowerCase(),
+        i_ticker.toUpperCase(),
+        i_timeFrame.toLowerCase(),
+        i_since ? Number(i_since) : undefined,
+        i_limit ? Number(i_limit) : undefined
+      );
+
+      if (response.status) {
+        throw ({ status: response.status, name: response.name, message: response.message });
+      }
+
+      return response;
+    }
+    catch (error) {
+      throw new HttpException({ status: error.status || HttpStatus.NOT_FOUND, name: error.name, message: error.message }, HttpStatus.NOT_FOUND);
+    }
   }
 
   // @Patch(':id')
