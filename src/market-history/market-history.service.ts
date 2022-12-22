@@ -21,7 +21,7 @@ export class MarketHistoryService {
         throw { name: "Try again", message: "Exchange does not exists" };
       }
 
-      const exchange = new ccxt.pro[i_exchange]();
+      const exchange = ccxt.pro.exchanges.includes(i_exchange) ? new ccxt.pro[i_exchange]() : new ccxt[i_exchange]();
       const ohlcv = await exchange.fetchOHLCV(i_ticker, i_timeFrame, i_since, i_limit);
 
       for (let i = 0; i < ohlcv.length; i++) {
