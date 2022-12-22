@@ -21,10 +21,15 @@ export class MarketHistoryService {
     }
 
     const exchange = ccxt.pro.exchanges.includes(i_exchange) ? new ccxt.pro[i_exchange]() : new ccxt[i_exchange]();
-    await exchange.loadMarkets();
+    const markets = await exchange.loadMarkets();
     const symbols = exchange.symbols;
+    let tickers = [];
 
-    if (!symbols.includes(i_ticker)) {
+    for (let m in markets) {
+      tickers = [...tickers, exchange.marketId(m)]
+    }
+
+    if (!symbols.includes(i_ticker) && !tickers.includes(i_ticker)) {
       return { status: HttpStatus.NOT_FOUND, name: "Not Found", message: `Ticker does not exists.\nTry one of: ${symbols}` };
     }
 
