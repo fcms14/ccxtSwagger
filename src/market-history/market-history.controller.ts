@@ -10,8 +10,7 @@ import { ApiOkResponse, ApiParam, ApiProperty, ApiQuery, ApiResponse, ApiTags, g
 @Controller('market-history')
 export class MarketHistoryController {
   constructor(private readonly marketHistoryService: MarketHistoryService) { 
-  }
-  
+  }  
 
   // @Post()
   // create(@Body() createMarketHistoryDto: CreateMarketHistoryDto) {
@@ -35,7 +34,7 @@ export class MarketHistoryController {
   })
   @ApiParam({
     name: 'i_timeFrame',
-    example: '1d',
+    enum: ['1m', '5m', '15m', '30m', '60m', '1h', '2h', '3h', '4h', '6h', '12h', '24h', '1d', '7d', '1w', '1M'],
     description: `Required to query the market history`,
   })
   @ApiQuery({
@@ -48,7 +47,7 @@ export class MarketHistoryController {
   @ApiQuery({
     name: "i_limit",
     example: 1,
-    description: "Used to query the market history at the defined limit. max limit = 1000",
+    description: "Used to query the market history at the defined limit",
     required: false,
     type: Number
   })
@@ -66,7 +65,7 @@ export class MarketHistoryController {
       const response = await this.marketHistoryService.findOne(
         i_exchange.toLowerCase(),
         i_ticker.toUpperCase(),
-        i_timeFrame.toLowerCase(),
+        i_timeFrame,
         i_since ? Number(i_since) : undefined,
         i_limit ? Number(i_limit) : undefined
       );
