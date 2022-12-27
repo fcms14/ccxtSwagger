@@ -12,15 +12,33 @@ export class MarketHistoryController {
   constructor(private readonly marketHistoryService: MarketHistoryService) { 
   }  
 
-  // @Post()
-  // create(@Body() createMarketHistoryDto: CreateMarketHistoryDto) {
-  //   return this.marketHistoryService.create(createMarketHistoryDto);
-  // }
+  @Get('/exchanges')
+  @ApiOkResponse({ description: 'List of supported exchanges', type: Array, isArray: true })
+  listExchanges() {
+    return require('ccxt').exchanges;
+  }
 
-  // @Get()
-  // findAll() {
-  //   return this.marketHistoryService.findAll();
-  // }
+  @ApiParam({
+    name: "i_exchange",
+    enum: require('ccxt').exchanges,
+    description: `Required to list the Tickers Available on Exchanges`,
+  })
+  @Get('/symbols/:i_exchange')
+  @ApiOkResponse({ description: 'List of Tickers Available on Exchanges', type: Array, isArray: true })
+  async listTickers(@Param('i_exchange') i_exchange: string) {
+    try {
+      const response = await this.marketHistoryService.listTickers(i_exchange.toLowerCase());
+
+      if (response.status) {
+        throw ({ status: response.status, name: response.name, message: response.message });
+      }
+
+      return response;
+    }
+    catch (error) {
+      throw new HttpException({ status: error.status || HttpStatus.NOT_FOUND, name: error.name, message: error.message }, HttpStatus.NOT_FOUND);
+    }
+  }
 
   @ApiParam({
     name: "i_exchange",
@@ -54,7 +72,7 @@ export class MarketHistoryController {
   @Get(':i_exchange/:i_ticker/:i_timeFrame')
   @ApiOkResponse({ description: 'Market History', type: Array, isArray: true })
   @ApiResponse({ status: 404, description: 'Not Found.' })
-  async findOne(
+  async fetchOHLCV(
     @Param('i_exchange') i_exchange: string,
     @Param('i_ticker') i_ticker: string,
     @Param('i_timeFrame') i_timeFrame: string,
@@ -62,7 +80,7 @@ export class MarketHistoryController {
     @Query('i_limit') i_limit?: Number
   ) {
     try {
-      const response = await this.marketHistoryService.findOne(
+      const response = await this.marketHistoryService.fetchOHLCV(
         i_exchange.toLowerCase(),
         i_ticker.toUpperCase(),
         i_timeFrame,
@@ -80,14 +98,4 @@ export class MarketHistoryController {
       throw new HttpException({ status: error.status || HttpStatus.NOT_FOUND, name: error.name, message: error.message }, HttpStatus.NOT_FOUND);
     }
   }
-
-  // @Patch(':id')
-  // update(@Param('id') id: string, @Body() updateMarketHistoryDto: UpdateMarketHistoryDto) {
-  //   return this.marketHistoryService.update(+id, updateMarketHistoryDto);
-  // }
-
-  // @Delete(':id')
-  // remove(@Param('id') id: string) {
-  //   return this.marketHistoryService.remove(+id);
-  // }
 }

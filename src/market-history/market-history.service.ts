@@ -5,15 +5,26 @@ import { UpdateMarketHistoryDto } from './dto/update-market-history.dto';
 
 @Injectable()
 export class MarketHistoryService {
-  // create(createMarketHistoryDto: CreateMarketHistoryDto) {
-  //   return 'This action adds a new marketHistory';
-  // }
+  async listTickers(i_exchange: string): Promise<[] | any> {
+    const ccxt = require('ccxt');
 
-  // findAll() {
-  //   return `This action returns all marketHistory`;
-  // }
+    if (!ccxt.exchanges.includes(i_exchange)) {
+      return { status: HttpStatus.NOT_FOUND, name: "Not Found", message: "Exchange does not exists" };
+    }
 
-  async findOne(i_exchange: string, i_ticker: string, i_timeFrame: string, i_since?: Number, i_limit?: Number) {
+    const exchange = ccxt.pro.exchanges.includes(i_exchange) ? new ccxt.pro[i_exchange]() : new ccxt[i_exchange]();
+    const markets = await exchange.loadMarkets();
+    const symbols = exchange.symbols;
+    let tickers = [];
+
+    for (let m in markets) {
+      tickers = [...tickers, exchange.marketId(m)]
+    }
+
+    return [...symbols, ...tickers];
+  }
+
+  async fetchOHLCV(i_exchange: string, i_ticker: string, i_timeFrame: string, i_since?: Number, i_limit?: Number) {
     const ccxt = require('ccxt');
 
     if (!ccxt.exchanges.includes(i_exchange)) {
@@ -45,12 +56,4 @@ export class MarketHistoryService {
 
     return ohlcv;
   }
-
-  // update(id: number, updateMarketHistoryDto: UpdateMarketHistoryDto) {
-  //   return `This action updates a #${id} marketHistory`;
-  // }
-
-  // remove(id: number) {
-  //   return `This action removes a #${id} marketHistory`;
-  // }
 }
